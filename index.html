@@ -18,6 +18,12 @@
   .btn{display:inline-block;margin:14px 6px 0;padding:12px 26px;border-radius:4px;text-decoration:none;font-weight:bold}
   .btn-gold{background:var(--gold);color:var(--navy)} .btn-red{background:var(--crimson);color:#fff}
   .btn-outline{border:2px solid var(--gold);color:var(--gold)}
+  .tiktok-box{background:#fff;border:1px solid #ddd6c2;border-left:6px solid var(--navy);padding:20px 22px;margin:16px 0;line-height:1.7}
+  .tiktok-btn{display:inline-block;margin:14px 6px 0;padding:12px 26px;border-radius:4px;text-decoration:none;font-weight:bold;background:#000;color:#fff;border:2px solid #000}
+  .tiktok-btn:hover{background:#222}
+  .connected{background:#eef7ee;border:1px solid #7fb069;padding:16px 18px;margin:16px 0;line-height:1.7}
+  .connected b{color:#2c6e31}
+  code{background:#eee;padding:2px 6px;border-radius:3px;font-size:14px}
   main{max-width:900px;margin:0 auto;padding:36px 20px}
   section{margin-bottom:44px} h2{color:var(--navy);border-bottom:3px solid var(--crimson);display:inline-block;padding-bottom:6px}
   .card{background:#fff;border:1px solid #ddd6c2;border-left:6px solid var(--crimson);padding:20px 22px;margin:16px 0;line-height:1.7}
@@ -76,6 +82,27 @@
     YouTube: <a href="https://www.youtube.com/@yahyadrama">youtube.com/@yahyadrama</a><br>
     TikTok: <a href="https://www.tiktok.com/@yehea_drama">tiktok.com/@yehea_drama</a></p>
   </section>
+
+  <section id="tiktok">
+    <h2>Connect TikTok</h2>
+    <div class="tiktok-box">
+      <p style="line-height:1.8">The studio publishes its own episodes to its TikTok account <b>@yehea_drama</b>. Connect with TikTok to authorize publishing.</p>
+      <div id="tiktok-connect">
+        <a class="tiktok-btn" href="#" id="tiktok-login-btn">Continue with TikTok</a>
+        <p style="font-size:14px;color:#555">You will be asked to approve access for: basic profile info, uploading videos, and direct posting.</p>
+      </div>
+      <div id="tiktok-connected" class="connected" style="display:none">
+        <b>✓ Connected to TikTok</b>
+        <p>Authorization received. Granted scopes: <code id="granted-scopes"></code></p>
+        <p>Authorization code: <code id="auth-code"></code> <span style="font-size:13px;color:#555">(masked — single use, handled by the studio's publishing tool)</span></p>
+        <p id="state-check" style="font-size:14px"></p>
+      </div>
+      <div id="tiktok-error" class="connected" style="display:none;background:#fdecea;border-color:#c0392b">
+        <b>TikTok authorization failed</b>
+        <p id="tiktok-error-text"></p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -86,5 +113,53 @@
   </div>
   <div>© 2026 Yahya Drama | دراما يحيى — All rights reserved.</div>
 </footer>
+<script>
+(function(){
+  var CLIENT_KEY = 'sbawwqgnrxt1bzv9c5';
+  var REDIRECT_URI = 'https://aboyehea.github.io/yahya-drama-site/';
+  var SCOPES = 'user.info.basic,video.upload,video.publish';
+  var btn = document.getElementById('tiktok-login-btn');
+  if (btn) {
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      var state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      try { sessionStorage.setItem('tiktok_oauth_state', state); } catch (err) {}
+      var url = 'https://www.tiktok.com/v2/auth/authorize/?client_key=' + encodeURIComponent(CLIENT_KEY)
+        + '&response_type=code'
+        + '&scope=' + encodeURIComponent(SCOPES)
+        + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
+        + '&state=' + encodeURIComponent(state);
+      window.location.href = url;
+    });
+  }
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get('code');
+  var error = params.get('error');
+  if (code) {
+    var scopes = params.get('scopes') || SCOPES;
+    var returnedState = params.get('state') || '';
+    var savedState = '';
+    try { savedState = sessionStorage.getItem('tiktok_oauth_state') || ''; } catch (err) {}
+    document.getElementById('tiktok-connect').style.display = 'none';
+    document.getElementById('tiktok-connected').style.display = 'block';
+    document.getElementById('granted-scopes').textContent = scopes;
+    document.getElementById('auth-code').textContent = code.slice(0, 8) + '…' + code.slice(-4);
+    var check = document.getElementById('state-check');
+    if (savedState && savedState === returnedState) {
+      check.textContent = 'Security check passed: the state value matches the one sent.';
+    } else if (!savedState) {
+      check.textContent = 'Note: this page was opened in a new session, so the state value could not be compared.';
+    } else {
+      check.textContent = 'Warning: the state value does not match the one sent.';
+    }
+    document.getElementById('tiktok').scrollIntoView();
+  } else if (error) {
+    document.getElementById('tiktok-connect').style.display = 'none';
+    document.getElementById('tiktok-error').style.display = 'block';
+    document.getElementById('tiktok-error-text').textContent = 'Error: ' + error + (params.get('error_description') ? ' — ' + params.get('error_description') : '');
+    document.getElementById('tiktok').scrollIntoView();
+  }
+})();
+</script>
 </body>
 </html>
